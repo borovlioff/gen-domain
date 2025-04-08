@@ -1,0 +1,25 @@
+// templates/src/application/useCases/deleteManyEntities/__test__/DeleteManyEntities.test.ts.ejs
+import { DeleteManyEntities } from "../DeleteManyEntities";
+import { <%= entity %>Repository } from "../../../../../domain/repositories/<%= entity %>Repository";
+
+describe('DeleteManyEntities UseCase', () => {
+  let repository: jest.Mocked<<%= entity %>Repository>;
+  let useCase: DeleteManyEntities;
+
+  beforeEach(() => {
+    repository = {
+      deleteMany: jest.fn().mockResolvedValue({ deletedCount: 5 }),
+    } as any;
+    
+    useCase = new DeleteManyEntities(repository);
+  });
+
+  it('должен удалить несколько сущностей', async () => {
+    const filter = { <% fields[0].name %>: 'obsolete' };
+    
+    const result = await useCase.execute(filter);
+    
+    expect(repository.deleteMany).toHaveBeenCalledWith(filter);
+    expect(result).toEqual({ deletedCount: 5 });
+  });
+});

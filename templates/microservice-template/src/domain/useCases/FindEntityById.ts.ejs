@@ -1,0 +1,10 @@
+import { <%= entity %> } from "../../domain/entities/<%= entity %>";
+import { <%= entity %>Repository } from "../../domain/repositories/<%= entity %>Repository";
+
+export class FindEntityById {
+  constructor(private repository: <%= entity %>Repository) {}
+
+  async execute(id: string): Promise<<%= entity %> | null> {
+    return this.repository.findOne({ id });
+  }
+}

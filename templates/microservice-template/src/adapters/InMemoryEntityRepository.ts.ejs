@@ -1,0 +1,131 @@
+// src/infrastructure/repositories/InMemoryEntityRepository.ts
+import { <%= entity %> } from "../../../domain/entities/<%= entity %>";
+import { <%= entity %>Repository } from "../../../domain/repositories/<%= entity %>Repository";
+
+export class InMemory<%= entity %>Repository implements <%= entity %>Repository {
+  private storage: <%= entity %>[] = [];
+  private currentId = 1;
+
+  // CREATE
+  async insertOne(data: Omit<<%= entity %>, 'id' | 'createdAt'>): Promise<<%= entity %>> {
+    const newEntity = {
+      ...data,
+      id: String(this.currentId++),
+      createdAt: new Date()
+    };
+    this.storage.push(newEntity);
+    return newEntity;
+  }
+
+  async insertMany(data: Omit<<%= entity %>, 'id' | 'createdAt'>[]): Promise<<%= entity %>[]> {
+    return Promise.all(data.map(item => this.insertOne(item)));
+  }
+
+  async bulkWrite(operations: any[]): Promise<{ success: boolean }> {
+    for (const op of operations) {
+      if (op.insertOne) {
+        await this.insertOne(op.insertOne);
+      }
+      // Добавить другие операции (update, delete) при необходимости
+    }
+    return { success: true };
+  }
+
+  // READ
+  async find(
+    filter: Partial<<%= entity %>>,
+    page = 1,
+    pageSize = 10,
+    sort: { [key: string]: 1 | -1 } = {}
+  ): Promise<{ data: <%= entity %>[], total: number }> {
+    let result = [...this.storage];
+    
+    // Фильтрация
+    result = result.filter(item => 
+      Object.entries(filter).every(([key, value]) => 
+        item[key as keyof <%= entity %>] === value
+      )
+    );
+
+    // Сортировка
+    if (Object.keys(sort).length > 0) {
+      const [sortKey] = Object.keys(sort);
+      result.sort((a, b) => {
+        const modifier = sort[sortKey] === 1 ? 1 : -1;
+        return a[sortKey] > b[sortKey] ? modifier : -modifier;
+      });
+    }
+
+    // Пагинация
+    const total = result.length;
+    const data = result.slice((page - 1) * pageSize, page * pageSize);
+    
+    return { data, total };
+  }
+
+  async findOne(filter: Partial<<%= entity %>>): Promise<<%= entity %> | null> {
+    return this.storage.find(item => 
+      Object.entries(filter).every(([key, value]) => 
+        item[key as keyof <%= entity %>] === value
+      )
+    ) || null;
+  }
+
+  // UPDATE
+  async updateOne(
+    filter: Partial<<%= entity %>>,
+    update: Partial<Omit<<%= entity %>, 'id' | 'createdAt'>>
+  ): Promise<<%= entity %> | null> {
+    const index = this.storage.findIndex(item => 
+      Object.entries(filter).every(([k, v]) => item[k as keyof <%= entity %>] === v)
+    );
+    
+    if (index === -1) return null;
+    
+    this.storage[index] = {
+      ...this.storage[index],
+      ...update,
+      createdAt: this.storage[index].createdAt // Защита от изменения
+    };
+    
+    return this.storage[index];
+  }
+
+  async updateMany(
+    filter: Partial<<%= entity %>>,
+    update: Partial<Omit<<%= entity %>, 'id' | 'createdAt'>>
+  ): Promise<{ modifiedCount: number }> {
+    let count = 0;
+    this.storage = this.storage.map(item => {
+      if (Object.entries(filter).every(([k, v]) => item[k as keyof <%= entity %>] === v)) {
+        count++;
+        return { ...item, ...update };
+      }
+      return item;
+    });
+    return { modifiedCount: count };
+  }
+
+  // DELETE
+  async deleteOne(filter: Partial<<%= entity %>>): Promise<{ success: boolean }> {
+    const index = this.storage.findIndex(item => 
+      Object.entries(filter).every(([k, v]) => item[k as keyof <%= entity %>] === v)
+    );
+    
+    if (index !== -1) {
+      this.storage.splice(index, 1);
+    }
+    
+    return { success: index !== -1 };
+  }
+
+  async deleteMany(filter: Partial<<%= entity %>>): Promise<{ deletedCount: number }> {
+    let count = 0;
+    this.storage = this.storage.filter(item => {
+      const match = Object.entries(filter).every(([k, v]) => item[k as keyof <%= entity %>] === v);
+      if (match) count++;
+      return !match;
+    });
+    return { deletedCount: count };
+  }
+}

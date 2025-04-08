@@ -1,0 +1,12 @@
+import { <%= entity %>Repository } from "../../domain/repositories/<%= entity %>Repository";
+
+export class UpdateManyEntities {
+  constructor(private repository: <%= entity %>Repository) {}
+
+  async execute(
+    filter: Partial<<%= entity %>>,
+    updates: Partial<Omit<<%= entity %>, 'id' | 'createdAt'>>
+  ): Promise<{ modifiedCount: number }> {
+    return this.repository.updateMany(filter, updates);
+  }
+}

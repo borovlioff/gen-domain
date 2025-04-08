@@ -1,0 +1,45 @@
+// templates/src/application/useCases/updateEntity/__test__/UpdateEntity.test.ts.ejs
+import { UpdateEntity } from "../UpdateEntity";
+import { <%= entity %>Repository } from "../../../../../domain/repositories/<%= entity %>Repository";
+
+const mockEntity = {
+  id: '123',
+  <% fields.forEach(field => { %>
+  <%= field.name %>: <%= field.type === 'string' ? `'test'` : field.type === 'number' ? 456 : 'false' %>,
+  <% }) %>
+  createdAt: new Date()
+};
+
+describe('UpdateEntity UseCase', () => {
+  let repository: jest.Mocked<<%= entity %>Repository>;
+  let useCase: UpdateEntity;
+
+  beforeEach(() => {
+    repository = {
+      updateOne: jest.fn().mockResolvedValue(mockEntity),
+      // ... другие методы
+    } as any;
+    
+    useCase = new UpdateEntity(repository);
+  });
+
+  it('должен обновить сущность', async () => {
+    const updates = {
+      <% fields.filter(f => f.name !== 'id' && f.name !== 'createdAt').forEach(field => { %>
+      <%= field.name %>: <%= field.type === 'string' ? `'new_value'` : field.type === 'number' ? 789 : 'true' %>,
+      <% }) %>
+    };
+    
+    const result = await useCase.execute('123', updates);
+    
+    expect(repository.updateOne).toHaveBeenCalledWith(
+      { id: '123' },
+      updates
+    );
+    
+    expect(result).toEqual({
+      ...mockEntity,
+      ...updates
+    });
+  });
+});

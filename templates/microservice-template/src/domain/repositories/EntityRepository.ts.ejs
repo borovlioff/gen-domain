@@ -1,0 +1,34 @@
+// src/domain/repositories/EntityRepository.ts
+import { <%= entity %> } from "../entities/<%= entity %>";
+
+export interface <%= entity %>Repository {
+  // CREATE
+  insertOne(entity: Omit<<%= entity %>, 'id' | 'createdAt'>): Promise<<%= entity %>>;
+  insertMany(entities: Omit<<%= entity %>, 'id' | 'createdAt'>[]): Promise<<%= entity %>[]>;
+  bulkWrite(operations: any[]): Promise<{ success: boolean }>;
+
+  // READ with pagination
+  find(
+    filter: Partial<<%= entity %>>,
+    page?: number,
+    pageSize?: number,
+    sort?: { [key: string]: 1 | -1 }
+  ): Promise<{ data: <%= entity %>[], total: number }>;
+  
+  findOne(filter: Partial<<%= entity %>>): Promise<<%= entity %> | null>;
+
+  // UPDATE
+  updateOne(
+    filter: Partial<<%= entity %>>,
+    update: Partial<Omit<<%= entity %>, 'id' | 'createdAt'>>
+  ): Promise<<%= entity %> | null>;
+  
+  updateMany(
+    filter: Partial<<%= entity %>>,
+    update: Partial<Omit<<%= entity %>, 'id' | 'createdAt'>>
+  ): Promise<{ modifiedCount: number }>;
+
+  // DELETE
+  deleteOne(filter: Partial<<%= entity %>>): Promise<{ success: boolean }>;
+  deleteMany(filter: Partial<<%= entity %>>): Promise<{ deletedCount: number }>;
+}

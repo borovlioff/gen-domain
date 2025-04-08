@@ -1,0 +1,9 @@
+import { <%= entity %>Repository } from "../../domain/repositories/<%= entity %>Repository";
+
+export class DeleteEntity {
+  constructor(private repository: <%= entity %>Repository) {}
+
+  async execute(id: string): Promise<{ success: boolean }> {
+    return this.repository.deleteOne({ id });
+  }
+}

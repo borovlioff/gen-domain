@@ -1,0 +1,16 @@
+// application/useCases/findEntities/FindEntities.ts
+import { <%= entity %> } from "../../domain/entities/<%= entity %>";
+import { <%= entity %>Repository } from "../../domain/repositories/<%= entity %>Repository";
+
+export class FindEntities {
+  constructor(private repository: <%= entity %>Repository) {}
+
+  async execute(
+    filter: Partial<<%= entity %>>,
+    page = 1,
+    pageSize = 10,
+    sort: { [key: string]: 1 | -1 } = {}
+  ): Promise<{ data: <%= entity %>[], total: number }> {
+    return this.repository.find(filter, page, pageSize, sort);
+  }
+}

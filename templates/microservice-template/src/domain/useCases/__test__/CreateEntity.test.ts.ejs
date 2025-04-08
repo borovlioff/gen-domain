@@ -1,0 +1,45 @@
+// templates/src/application/useCases/createEntity/__test__/CreateEntity.test.ts.ejs
+import { CreateEntity } from "../CreateEntity";
+import { <%= entity %>Repository } from "../../../../../domain/repositories/<%= entity %>Repository";
+
+// Мок данных
+const mockData = {
+  <% fields.filter(f => f.name !== 'id' && f.name !== 'createdAt').forEach(field => { %>
+  <%= field.name %>: <%= field.type === 'string' ? `'test'` : field.type === 'number' ? 123 : 'true' %>,
+  <% }) %>
+};
+
+const mockEntity = {
+  id: '123',
+  createdAt: new Date(),
+  ...mockData
+};
+
+describe('CreateEntity UseCase', () => {
+  let repository: jest.Mocked<<%= entity %>Repository>;
+  let useCase: CreateEntity;
+
+  beforeEach(() => {
+    repository = {
+      insertOne: jest.fn().mockResolvedValue(mockEntity),
+      // ... другие методы можно mock-нуть как jest.fn()
+    } as any;
+    
+    useCase = new CreateEntity(repository);
+  });
+
+  it('должен создать сущность', async () => {
+    const result = await useCase.execute(mockData);
+    
+    expect(repository.insertOne).toHaveBeenCalledWith(mockData);
+    expect(result).toEqual(mockEntity);
+  });
+
+  it('должен обработать ошибку БД', async () => {
+    repository.insertOne.mockRejectedValueOnce(new Error('DB error'));
+    
+    await expect(useCase.execute(mockData))
+      .rejects
+      .toThrow('DB error');
+  });
+});

@@ -1,0 +1,7 @@
+export interface ApiPort {
+    create(request: any): Promise<any>;
+    find(query: any): Promise<any>;
+    findOne(id: string): Promise<any>;
+    update(id: string, updates: any): Promise<any>;
+    delete(id: string): Promise<any>;
+  }

@@ -1,0 +1,53 @@
+// templates/src/application/useCases/findEntities/__test__/FindEntities.test.ts.ejs
+import { FindEntities } from "../FindEntities";
+import { <%= entity %>Repository } from "../../../../../domain/repositories/<%= entity %>Repository";
+
+const mockEntities = [
+  {
+    id: '1',
+    <% fields.forEach(field => { %>
+    <%= field.name %>: <%= field.type === 'string' ? `'entity1'` : 100 %>,
+    <% }) %>
+    createdAt: new Date()
+  },
+  {
+    id: '2',
+    <% fields.forEach(field => { %>
+    <%= field.name %>: <%= field.type === 'string' ? `'entity2'` : 200 %>,
+    <% }) %>
+    createdAt: new Date()
+  }
+];
+
+describe('FindEntities UseCase', () => {
+  let repository: jest.Mocked<<%= entity %>Repository>;
+  let useCase: FindEntities;
+
+  beforeEach(() => {
+    repository = {
+      find: jest.fn().mockResolvedValue({ data: mockEntities, total: 2 }),
+    } as any;
+    
+    useCase = new FindEntities(repository);
+  });
+
+  it('должен найти сущности с пагинацией', async () => {
+    const filter = { <% fields[0].name %>: 'test' };
+    const page = 2;
+    const pageSize = 10;
+    
+    const result = await useCase.execute(filter, page, pageSize);
+    
+    expect(repository.find).toHaveBeenCalledWith(
+      filter,
+      page,
+      pageSize,
+      {}
+    );
+    
+    expect(result).toEqual({
+      data: mockEntities,
+      total: 2
+    });
+  });
+});
