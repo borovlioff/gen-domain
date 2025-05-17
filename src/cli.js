@@ -1,11 +1,18 @@
 import inquirer from 'inquirer';
+import { renderTemplates } from "./renderer.js"
+import path from 'path';
+import { fileURLToPath } from 'node:url';
+
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 async function askFields(entityName, nestedEntitiesNames = []) {
   const fields = [];
-  let addMore = true;
+  const baseTypes = ['string', 'number', 'boolean', 'date', 'object'];
+  const typeChoices = [...baseTypes, 'array', ...nestedEntitiesNames];
 
-  // Базовые типы + вложенные сущности как типы
-  const typeChoices = ['string', 'number', 'boolean', 'date', 'object', 'array', ...nestedEntitiesNames];
+  let addMore = true;
 
   while (addMore) {
     const { fieldName } = await inquirer.prompt({
@@ -22,7 +29,21 @@ async function askFields(entityName, nestedEntitiesNames = []) {
       choices: typeChoices,
     });
 
-    fields.push({ name: fieldName, type: fieldType });
+    let finalType = fieldType;
+
+    if (fieldType === 'array') {
+      // Если выбрали массив, спрашиваем тип элементов массива
+      const elementTypeChoices = [...baseTypes, ...nestedEntitiesNames];
+      const { elementType } = await inquirer.prompt({
+        type: 'list',
+        name: 'elementType',
+        message: `Выберите тип элементов массива для поля "${fieldName}":`,
+        choices: elementTypeChoices,
+      });
+      finalType = `array<${elementType}>`;
+    }
+
+    fields.push({ name: fieldName, type: finalType });
 
     const { continueAddingFields } = await inquirer.prompt({
       type: 'confirm',
@@ -36,6 +57,7 @@ async function askFields(entityName, nestedEntitiesNames = []) {
 
   return fields;
 }
+
 
 async function askNestedEntities() {
   const nestedEntities = [];
@@ -68,13 +90,14 @@ async function askNestedEntities() {
   return nestedEntities;
 }
 
-async function main() {
+export async function cli(args) {
+  let projectName = args[0] || null;
   console.log('=== Консольное приложение для настройки сущностей ===\n');
 
   // 1. Ввод названия основной сущности
-  const { entityName } = await inquirer.prompt({
+  const { entity } = await inquirer.prompt({
     type: 'input',
-    name: 'entityName',
+    name: 'entity',
     message: 'Введите название основной сущности:',
     validate: input => input.trim() !== '' || 'Название не может быть пустым',
   });
@@ -94,7 +117,7 @@ async function main() {
 
   // 3. Добавляем поля основной сущности, типы полей - базовые или вложенные сущности
   const nestedNames = nestedEntities.map(ne => ne.name);
-  const mainEntityFields = await askFields(entityName, nestedNames);
+  const mainEntityFields = await askFields(entity, nestedNames);
 
   // 4. Выбор базы данных
   const { dbChoice } = await inquirer.prompt({
@@ -164,14 +187,14 @@ async function main() {
       type: 'list',
       name: 'rpcChoice',
       message: 'Выберите адаптер RPC:',
-      choices: ['gRPC', 'Json-rpc'],
+      choices: ['gRPC', 'JSON-RPC'],
     });
     rpcAdapter = rpcChoice;
   }
 
   // Итоговый вывод
   console.log('\n=== Итоговая конфигурация ===');
-  console.log(`Основная сущность: ${entityName}`);
+  console.log(`Основная сущность: ${entity}`);
 
   if (nestedEntities.length) {
     console.log('Вложенные сущности и их поля:');
@@ -192,9 +215,24 @@ async function main() {
   console.log(`Брокер сообщений: ${needBroker ? `Да, адаптер: ${brokerAdapter}` : 'Нет'}`);
   console.log(`RPC: ${needRpc ? `Да, адаптер: ${rpcAdapter}` : 'Нет'}`);
 
+projectName = projectName || `${entity}Service`;
+  // Генерация проекта
+  const templatePath = path.join(__dirname, 'templates/microservice-template');
+  const targetPath = path.join(process.cwd(), projectName);
+
+  await renderTemplates({
+    templatePath,
+    targetPath,
+    projectName,
+    entity,
+    nestedEntities,
+    fields: mainEntityFields,
+    dbChoice,
+    restAdapter,
+    needSwagger,
+    brokerAdapter,
+    rpcAdapter,
+  });
+
   console.log('\nСпасибо за использование приложения!');
 }
-
-main().catch(err => {
-  console.error('Ошибка:', err);
-});

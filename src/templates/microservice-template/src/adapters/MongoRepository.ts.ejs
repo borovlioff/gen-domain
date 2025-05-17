@@ -1,0 +1,80 @@
+// templates/microservice-template/src/infrastructure/repositories/MongoEntityRepository.ts.ejs
+
+import { <%= entity %> } from "../../domain/entities/<%= entity %>";
+import { <%= entity %>Repository } from "../../domain/repositories/<%= entity %>Repository";
+import { <%= entity %>Model } from "../../config/<%= entity %>Model";
+
+export class MongoRepository implements <%= entity %>Repository {
+  // CREATE
+  async insertOne(entity: Omit<<%= entity %>, 'id' | 'createdAt'>): Promise<<%= entity %>> {
+    const newEntity = new <%= entity %>Model(entity);
+    const savedEntity = await newEntity.save();
+    return savedEntity.toObject();
+  }
+
+  async insertMany(entities: Omit<<%= entity %>, 'id' | 'createdAt'>[]): Promise<<%= entity %>[]> {
+    const savedEntities = await <%= entity %>Model.insertMany(entities);
+    return savedEntities.map((doc) => doc.toObject());
+  }
+
+  async bulkWrite(operations: any[]): Promise<{ success: boolean }> {
+    try {
+      await <%= entity %>Model.bulkWrite(operations);
+      return { success: true };
+    } catch (error) {
+      console.error('Error in bulkWrite:', error.message);
+      return { success: false };
+    }
+  }
+
+  // READ
+  async find(
+    filter: Partial<<%= entity %>>,
+    page = 1,
+    pageSize = 10,
+    sort: { [key: string]: 1 | -1 } = {}
+  ): Promise<{ data: <%= entity %>[]; total: number }> {
+    const query = <%= entity %>Model.find(filter).sort(sort);
+    const total = await <%= entity %>Model.countDocuments(filter);
+
+    const data = await query
+      .skip((page - 1) * pageSize)
+      .limit(pageSize)
+      .lean();
+
+    return { data, total };
+  }
+
+  async findOne(filter: Partial<<%= entity %>>): Promise<<%= entity %> | null> {
+    const result = await <%= entity %>Model.findOne(filter).lean();
+    return result || null;
+  }
+
+  // UPDATE
+  async updateOne(
+    filter: Partial<<%= entity %>>,
+    updates: Partial<Omit<<%= entity %>, 'id' | 'createdAt'>>
+  ): Promise<<%= entity %> | null> {
+    const updatedEntity = await <%= entity %>Model.findOneAndUpdate(filter, updates, { new: true }).lean();
+    return updatedEntity || null;
+  }
+
+  async updateMany(
+    filter: Partial<<%= entity %>>,
+    updates: Partial<Omit<<%= entity %>, 'id' | 'createdAt'>>
+  ): Promise<{ modifiedCount: number }> {
+    const result = await <%= entity %>Model.updateMany(filter, updates);
+    return { modifiedCount: result.modifiedCount || 0 };
+  }
+
+  // DELETE
+  async deleteOne(filter: Partial<<%= entity %>>): Promise<{ success: boolean }> {
+    const result = await <%= entity %>Model.deleteOne(filter);
+    return { success: result.deletedCount > 0 };
+  }
+
+  async deleteMany(filter: Partial<<%= entity %>>): Promise<{ deletedCount: number }> {
+    const result = await <%= entity %>Model.deleteMany(filter);
+    return { deletedCount: result.deletedCount || 0 };
+  }
+}

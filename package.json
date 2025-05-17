@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "A CLI tool to generate microservices with customizable entities, HTTP API, and RabbitMQ integration.",
   "main": "index.js",
+  "type": "module",
   "bin": {
     "create-microservice": "./bin/create-microservice.js"
   },

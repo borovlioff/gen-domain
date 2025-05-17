@@ -1,9 +1,9 @@
 import { <%= entity %>Repository } from "../../domain/repositories/<%= entity %>Repository";
 
-export class BulkWriteEntities {
+export class Delete<%= entity %> {
   constructor(private repository: <%= entity %>Repository) {}
 
-  async execute(operations: any[]): Promise<{ success: boolean }> {
-    return this.repository.bulkWrite(operations);
+  async execute(id: string): Promise<{ success: boolean }> {
+    return this.repository.deleteOne({ id });
   }
 }

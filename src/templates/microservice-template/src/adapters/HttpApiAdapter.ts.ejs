@@ -1,0 +1,192 @@
+import http from 'http';
+import url from 'url';
+import { Create<%=entity %> } from "../domain/useCases/Create<%=entity %>";
+import { Find<%=entity %>} from "../domain/useCases/Find<%=entity %>";
+import { Update<%=entity %> } from "../domain/useCases/Update<%=entity %>";
+import { Delete<%=entity %> } from "../domain/useCases/Delete<%=entity %>";
+import { ApiPort } from "../port/Api";
+
+export class HttpAdapter implements ApiPort {
+  private server: http.Server;
+  private port: number;
+
+  constructor(
+    port: number,
+    private createEntityUseCase: Create<%=entity %>,
+    private findEntitiesUseCase: Find<%=entity %>,
+    private updateEntityUseCase: Update<%=entity %>,
+    private deleteEntityUseCase: Delete<%=entity %>
+  ) {
+    this.port = port;
+    this.server = http.createServer(this.handleRequest.bind(this));
+  }
+
+  // Метод создания сущности
+  async create(request: any): Promise<any> {
+    try {
+      const { body } = request;
+
+      if (!body) {
+        throw new Error('Request body is missing');
+      }
+
+      const createdEntity = await this.createEntityUseCase.execute(body);
+
+      return {
+        success: true,
+        message: 'Entity created successfully',
+        data: createdEntity
+      };
+    } catch (error) {
+      console.error('Error in create method:', error.message);
+      return {
+        success: false,
+        message: 'Failed to create entity',
+        error: error.message
+      };
+    }
+  }
+
+  // Метод поиска сущностей
+  async find(query: any): Promise<any> {
+    try {
+      const result = await this.findEntitiesUseCase.execute(query);
+      return {
+        success: true,
+        message: 'Entities found successfully',
+        data: result
+      };
+    } catch (error) {
+      console.error('Error in find method:', error.message);
+      return {
+        success: false,
+        message: 'Failed to find entities',
+        error: error.message
+      };
+    }
+  }
+
+  // Метод поиска одной сущности
+  async findOne(id: string): Promise<any> {
+    try {
+      const result = await this.findEntitiesUseCase.execute({ id });
+      return {
+        success: true,
+        message: 'Entity found successfully',
+        data: result
+      };
+    } catch (error) {
+      console.error('Error in findOne method:', error.message);
+      return {
+        success: false,
+        message: 'Failed to find entity',
+        error: error.message
+      };
+    }
+  }
+
+  // Метод обновления сущности
+  async update(id: string, updates: any): Promise<any> {
+    try {
+      const result = await this.updateEntityUseCase.execute(id, updates);
+      return {
+        success: true,
+        message: 'Entity updated successfully',
+        data: result
+      };
+    } catch (error) {
+      console.error('Error in update method:', error.message);
+      return {
+        success: false,
+        message: 'Failed to update entity',
+        error: error.message
+      };
+    }
+  }
+
+  // Метод удаления сущности
+  async delete(id: string): Promise<any> {
+    try {
+      const result = await this.deleteEntityUseCase.execute(id);
+      return {
+        success: true,
+        message: 'Entity deleted successfully',
+        data: result
+      };
+    } catch (error) {
+      console.error('Error in delete method:', error.message);
+      return {
+        success: false,
+        message: 'Failed to delete entity',
+        error: error.message
+      };
+    }
+  }
+
+  // Обработчик запросов
+  private async handleRequest(req: http.IncomingMessage, res: http.ServerResponse) {
+    const parsedUrl = url.parse(req.url || '', true);
+    const method = req.method?.toLowerCase();
+    let body = '';
+
+    // Считываем тело запроса
+    req.on('data', chunk => {
+      body += chunk.toString();
+    });
+
+    req.on('end', async () => {
+      let response;
+
+      try {
+        switch (method) {
+          case 'post':
+            if (parsedUrl.pathname === '/api/create') {
+              const data = JSON.parse(body);
+              response = await this.create({ body: data });
+            }
+            break;
+
+          case 'get':
+            if (parsedUrl.pathname === '/api/find') {
+              const query = parsedUrl.query;
+              response = await this.find(query);
+            } else if (parsedUrl.pathname?.startsWith('/api/find/')) {
+              const id = parsedUrl.pathname.split('/').pop() || '';
+              response = await this.findOne(id);
+            }
+            break;
+
+          case 'put':
+            if (parsedUrl.pathname?.startsWith('/api/update/')) {
+              const id = parsedUrl.pathname.split('/').pop() || '';
+              const data = JSON.parse(body);
+              response = await this.update(id, data);
+            }
+            break;
+
+          case 'delete':
+            if (parsedUrl.pathname?.startsWith('/api/delete/')) {
+              const id = parsedUrl.pathname.split('/').pop() || '';
+              response = await this.delete(id);
+            }
+            break;
+
+          default:
+            response = { error: 'Method not allowed' };
+        }
+      } catch (error) {
+        response = { error: error.message || 'Internal Server Error' };
+      }
+
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify(response));
+    });
+  }
+
+  // Запуск сервера
+  start() {
+    this.server.listen(this.port, () => {
+      console.log(`Сервер запущен на порту ${this.port}`);
+    });
+  }
+}

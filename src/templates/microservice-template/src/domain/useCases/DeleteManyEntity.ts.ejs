@@ -1,7 +1,7 @@
 // application/useCases/deleteManyEntities/DeleteManyEntities.ts
 import { <%= entity %>Repository } from "../../domain/repositories/<%= entity %>Repository";
 
-export class DeleteManyEntities {
+export class DeleteMany<%= entity %> {
   constructor(private repository: <%= entity %>Repository) {}
 
   async execute(filter: Partial<<%= entity %>>): Promise<{ deletedCount: number }> {

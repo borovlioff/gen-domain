@@ -1,5 +1,5 @@
 // templates/src/application/useCases/deleteManyEntities/__test__/DeleteManyEntities.test.ts.ejs
-import { DeleteManyEntities } from "../DeleteManyEntities";
+import { DeleteMany<%= entity %> } from "../DeleteMany<%= entity %>";
 import { <%= entity %>Repository } from "../../../../../domain/repositories/<%= entity %>Repository";
 
 describe('DeleteManyEntities UseCase', () => {

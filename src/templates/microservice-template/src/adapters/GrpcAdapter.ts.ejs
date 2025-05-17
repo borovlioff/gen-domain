@@ -1,0 +1,166 @@
+import * as grpc from '@grpc/grpc-js';
+import * as protoLoader from '@grpc/proto-loader';
+import path from 'path';
+import { Create<%=entity %> } from "../domain/useCases/Create<%=entity %>";
+import { Find<%=entity %>} from "../domain/useCases/Find<%=entity %>";
+import { Update<%=entity %> } from "../domain/useCases/Update<%=entity %>";
+import { Delete<%=entity %> } from "../domain/useCases/Delete<%=entity %>";
+import { ApiPort } from "../port/Api";
+
+export class GrpcAdapter implements ApiPort {
+  private server: grpc.Server;
+
+  constructor(
+    private createEntityUseCase: Create<%=entity %>,
+    private findEntitiesUseCase: Find<%=entity %>,
+    private updateEntityUseCase: Update<%=entity %>,
+    private deleteEntityUseCase: Delete<%=entity %>
+  ) {
+    this.server = new grpc.Server();
+  }
+
+  // Метод создания сущности
+  async create(call: any, callback: any) {
+    try {
+      const { data } = call.request;
+
+      if (!data) {
+        throw new Error('Request data is missing');
+      }
+
+      const createdEntity = await this.createEntityUseCase.execute(data);
+
+      callback(null, {
+        success: true,
+        message: 'Entity created successfully',
+        data: createdEntity
+      });
+    } catch (error) {
+      console.error('Error in create method:', error.message);
+      callback(null, {
+        success: false,
+        message: 'Failed to create entity',
+        error: error.message
+      });
+    }
+  }
+
+  // Метод поиска сущностей
+  async find(call: any, callback: any) {
+    try {
+      const { query } = call.request;
+      const result = await this.findEntitiesUseCase.execute(query);
+
+      callback(null, {
+        success: true,
+        message: 'Entities found successfully',
+        data: result
+      });
+    } catch (error) {
+      console.error('Error in find method:', error.message);
+      callback(null, {
+        success: false,
+        message: 'Failed to find entities',
+        error: error.message
+      });
+    }
+  }
+
+  // Метод поиска одной сущности
+  async findOne(call: any, callback: any) {
+    try {
+      const { id } = call.request;
+      const result = await this.findEntitiesUseCase.execute({ id });
+
+      callback(null, {
+        success: true,
+        message: 'Entity found successfully',
+        data: result
+      });
+    } catch (error) {
+      console.error('Error in findOne method:', error.message);
+      callback(null, {
+        success: false,
+        message: 'Failed to find entity',
+        error: error.message
+      });
+    }
+  }
+
+  // Метод обновления сущности
+  async update(call: any, callback: any) {
+    try {
+      const { id, updates } = call.request;
+      const result = await this.updateEntityUseCase.execute(id, updates);
+
+      callback(null, {
+        success: true,
+        message: 'Entity updated successfully',
+        data: result
+      });
+    } catch (error) {
+      console.error('Error in update method:', error.message);
+      callback(null, {
+        success: false,
+        message: 'Failed to update entity',
+        error: error.message
+      });
+    }
+  }
+
+  // Метод удаления сущности
+  async delete(call: any, callback: any) {
+    try {
+      const { id } = call.request;
+      const result = await this.deleteEntityUseCase.execute(id);
+
+      callback(null, {
+        success: true,
+        message: 'Entity deleted successfully',
+        data: result
+      });
+    } catch (error) {
+      console.error('Error in delete method:', error.message);
+      callback(null, {
+        success: false,
+        message: 'Failed to delete entity',
+        error: error.message
+      });
+    }
+  }
+
+  // Запуск сервера
+  start(port: string) {
+    const PROTO_PATH = path.join(__dirname, '../../proto/entity.proto');
+    const packageDefinition = protoLoader.loadSync(PROTO_PATH, {
+      keepCase: true,
+      longs: String,
+      enums: String,
+      defaults: true,
+      oneofs: true
+    });
+
+    const entityProto = grpc.loadPackageDefinition(packageDefinition).entity;
+
+    this.server.addService(entityProto.EntityService.service, {
+      Create: this.create.bind(this),
+      Find: this.find.bind(this),
+      FindOne: this.findOne.bind(this),
+      Update: this.update.bind(this),
+      Delete: this.delete.bind(this)
+    });
+
+    this.server.bindAsync(
+      port,
+      grpc.ServerCredentials.createInsecure(),
+      (err, port) => {
+        if (err) {
+          console.error('Failed to bind server:', err.message);
+          return;
+        }
+        console.log(`gRPC server запущен на порту ${port}`);
+        this.server.start();
+      }
+    );
+  }
+}

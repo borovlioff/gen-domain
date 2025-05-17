@@ -1,0 +1,20 @@
+import mongoose from 'mongoose';
+
+const <%= entity %>Schema = new mongoose.Schema({
+  <% fields.forEach(field => { %>
+  <%= field.name %>: { type: <%= toMongooseType(field.type) %> },
+  <% }) %>
+}, { timestamps: true });
+
+export const <%= entity %>Model = mongoose.model('<%= entity %>', <%= entity %>Schema);
+
+<% function toMongooseType(type) { 
+  switch(type) {
+    case 'string': return 'String';
+    case 'number': return 'Number';
+    case 'boolean': return 'Boolean';
+    case 'date': return 'Date';
+    case 'object': return 'Object';
+    default: return 'Mixed';
+  }
+} %>
